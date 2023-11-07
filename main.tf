@@ -5,14 +5,14 @@ resource "aws_vpc" "myvpc" {
 resource "aws_subnet" "sub_one" {
   vpc_id = aws_vpc.myvpc.id
   cidr_block = "10.0.0.0/24"
-  availability_zone = "ap-south-1"
+  availability_zone = "us-east-1a"
   map_public_ip_on_launch = true
 }
 
 resource "aws_subnet" "sub_two" {
   vpc_id = aws_vpc.myvpc.id
   cidr_block = "10.0.1.0/24"
-  availability_zone = "us-east-1"
+  availability_zone = "us-east-1b"
   map_public_ip_on_launch = true
 }
 
@@ -37,4 +37,78 @@ resource "aws_route_table_association" "rta1" {
 resource "aws_route_table_association" "rta2" {
   subnet_id = aws_subnet.sub_two.id
   route_table_id =  aws_route_table.RT.id
+}
+
+# DECLARING SECUIRTY GROUP FOR EC2 AND LOAD BALANCERcheck
+
+resource "aws_security_group" "webSG" {
+  name        = "web-sg"
+  description = "Allow TLS inbound traffic"
+  vpc_id      = aws_vpc.myvpc.id
+
+  ingress {
+    description      = "HTTP from VPC"
+    from_port        = 80
+    to_port          = 80
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description      = "SSH from VPC"
+    from_port        = 22
+    to_port          = 22
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "web-sg"
+  }
+}
+
+# DECLARING S3 INSTANCE
+
+resource "aws_s3_bucket" "mybucket" {
+  bucket = "tfawsinfraprojectwithdemo"
+}
+
+resource "aws_s3_bucket_public_access_block" "mybucket" {
+  bucket = aws_s3_bucket.mybucket.id
+
+  block_public_acls         = false
+  block_public_policy       = false
+  ignore_public_acls        = false 
+  restrict_public_buckets   = false 
+}
+
+resource "aws-s3_bucket_acl" "mybucket2" {
+  bucket = aws_s3_bucket.mybucket.id
+  acl = "public-read"
+  
+}
+
+# DECLARING EC2 INSTANCE
+
+resource "aws_instance" "webserver1" {
+  ami = "ami-0287a05f0ef0e9d9a"
+  instance_type = "t2.micro"
+  vpc_security_group_ids = [aws_security_group.webSG.id]
+  subnet_id = aws_subnet.sub_one.id
+  user_data = base64decode(file("userdata.sh"))
+}
+
+resource "aws_instance" "webserver2" {
+  ami = "ami-0287a05f0ef0e9d9a"
+  instance_type = "t2.micro"
+  vpc_security_group_ids = [aws_security_group.webSG.id]
+  subnet_id = aws_subnet.sub_two.id
+  user_data = base64decode(file("userdata1.sh"))
 }
