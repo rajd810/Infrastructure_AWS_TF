@@ -89,7 +89,7 @@ resource "aws_s3_bucket_public_access_block" "mybucket" {
   restrict_public_buckets   = false 
 }
 
-resource "aws-s3_bucket_acl" "mybucket2" {
+resource "aws_s3_bucket_acl" "mybucket2" {
   bucket = aws_s3_bucket.mybucket.id
   acl = "public-read"
   
@@ -102,7 +102,7 @@ resource "aws_instance" "webserver1" {
   instance_type = "t2.micro"
   vpc_security_group_ids = [aws_security_group.webSG.id]
   subnet_id = aws_subnet.sub_one.id
-  user_data = base64decode(file("userdata.sh"))
+  user_data = base64encode(file("userdata.sh"))
 }
 
 resource "aws_instance" "webserver2" {
@@ -110,5 +110,5 @@ resource "aws_instance" "webserver2" {
   instance_type = "t2.micro"
   vpc_security_group_ids = [aws_security_group.webSG.id]
   subnet_id = aws_subnet.sub_two.id
-  user_data = base64decode(file("userdata1.sh"))
+  user_data = base64encode(file("userdata1.sh"))
 }
